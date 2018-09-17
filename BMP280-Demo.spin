@@ -25,6 +25,7 @@ OBJ
 VAR
 
     long _ser_cog
+    long t_fine
 
 PUB Main
 
@@ -52,6 +53,26 @@ PUB Main
 
         time.MSleep (100)
 
+PUB cvt_t: T | var1, var2, dig_T1, dig_T2, dig_T3
+'' TODO: Read dig_* constants from BMP280 NVM
+    var1 := ((bmp.LastTemp/16384) - (dig_T1/1024)) * dig_T2
+    var2 := ((bmp.LastTemp/131072) - (dig_T1/8192)) * (bmp.LastTemp / 131072) - (dig_T1 / 8192) * dig_T3
+    t_fine := var1 + var2
+    T := (var1 + var2) / 5120
+
+PUB cvt_p: P | var1, var2, dig_P6, dig_P5, dig_P4, dig_P3, dig_P2, dig_P1, dig_P9, dig_P8, dig_P7
+'' TODO: Read dig_* constants from BMP280 NVM
+    var1 := (t_fine / 2) - 64000
+    var2 := var1 * var1 * dig_P6 / 32768
+    var2 := var2 + var1 * dig_P5 * 2
+    var2 := (var2 / 4) + (dig_P4 * 65536)
+    var1 := (dig_P3 * var1 * var1 / 524288 + dig_P2 * var1) / 524288
+    var1 := (1 + var1 / 32768) * dig_P1
+    p := 1048576 - bmp.LastPress
+    p := (p - (var2 / 4096)) * 6250 / var1
+    var1 := dig_P9 * p * p / 2_147_483_648
+    var2 := p * dig_P8 / 32768
+    p := p + (var1 + var2 + dig_P7) / 16
 
 PUB waitkey
 

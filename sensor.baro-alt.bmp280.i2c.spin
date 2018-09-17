@@ -1,8 +1,11 @@
 {
     --------------------------------------------
-    Filename:
-    Author:
-    Copyright (c) 20__
+    Filename: sensor.baro-alt.bmp280.i2c.spin
+    Description: Driver object for the BOSCH BMP280 Barometric Pressure/Temperature sensor
+    Author: Jesse Burt
+    Copyright (c) 2018
+    Created: September 16, 2018
+    Updated: September 16, 2018
     See end of file for terms of use.
     --------------------------------------------
 }
@@ -26,7 +29,7 @@ CON
 
 VAR
 
-    byte    _comp_data[25]
+    byte    _comp_data[24]
     long    _last_temp, _last_press
 
 OBJ
@@ -88,7 +91,7 @@ PUB Temperature
     Measure
     return _last_temp
 
-PUB LastTemp | tmp
+PUB LastTemp
 '' Returns Temperature data from last read
     return _last_temp
 
@@ -97,6 +100,10 @@ PUB LastPress
 
     return _last_press
 
+PUB ReadTrim
+
+    readRegX(bmp280#DIG_T1_LSB, @_comp_data, 24)
+ 
 PUB SoftReset
 '' Sends soft-reset command to BMP280
     writeReg8 (bmp280#RESET, bmp280#DO_RESET)
@@ -105,36 +112,41 @@ PUB Status
 '' Queries status register
     result := readReg8 (bmp280#STATUS)
 
-PUB readReg8(reg)
+PRI readReg8(reg)
 
     writeOne (reg)
     result := read8
 
-PUB readReg24(reg_base)
+PRI readReg24(reg_base)
 '' Intended for reading one of Temperature or Pressure
     writeOne (reg_base)
     readX (@result, 3)
 
-PUB readReg48(reg_base, ptr_data)
+PRI readReg48(reg_base, ptr_data)
 '' Intended for reading both Temperature and Pressure
     writeOne (reg_base)
     readX (ptr_data, 6)
 
-PUB read8
+PRI readRegX(reg_base, ptr_data, count)
+'' Intended for reading both Temperature and Pressure
+    writeOne (reg_base)
+    readX (ptr_data, count)
+
+PRI read8
 
     i2c.start
     i2c.write (BMP280_R)
     result := i2c.read (i2c#NAK)
     i2c.stop
 
-PUB readX(ptr_buff, num_bytes)
+PRI readX(ptr_buff, num_bytes)
 
     i2c.start
     i2c.write (BMP280_R)
     i2c.pread (ptr_buff, num_bytes, i2c#NAK)
     i2c.stop
     
-PUB writeReg8(reg, data) | cmd_packet
+PRI writeReg8(reg, data) | cmd_packet
 
     cmd_packet.byte[0] := BMP280_W
     cmd_packet.byte[1] := reg
@@ -144,7 +156,7 @@ PUB writeReg8(reg, data) | cmd_packet
     i2c.pwrite (@cmd_packet, 3)
     i2c.stop
 
-PUB writeOne(data) | cmd_packet
+PRI writeOne(data) | cmd_packet
 
     cmd_packet.byte[0] := BMP280_W
     cmd_packet.byte[1] := data
