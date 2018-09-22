@@ -49,7 +49,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ)
 
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)'Validate pins and
         if I2C_HZ =< bmp280#I2C_MAX_FREQ                    ' I2C bus freq
-            result := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ) 'Pass cog ID returned from I2C object
+            return i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ) 'Pass cog ID returned from I2C object
         else
           return FALSE
     else
@@ -58,7 +58,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ)
 PUB ID
 '' Queries ID register
 ''  Should always return $58
-    result := readReg8 (bmp280#ID)
+    return readReg8 (bmp280#ID)
 
 PUB MeasureMode(mode)
 
@@ -110,12 +110,12 @@ PUB SoftReset
 
 PUB Status
 '' Queries status register
-    result := readReg8 (bmp280#STATUS)
+    return readReg8 (bmp280#STATUS)
 
 PRI readReg8(reg)
 
     writeOne (reg)
-    result := read8
+    return read8
 
 PRI readReg24(reg_base)
 '' Intended for reading one of Temperature or Pressure
@@ -136,7 +136,7 @@ PRI read8
 
     i2c.start
     i2c.write (BMP280_R)
-    result := i2c.read (i2c#NAK)
+    return i2c.read (i2c#NAK)
     i2c.stop
 
 PRI readX(ptr_buff, num_bytes)
