@@ -5,10 +5,9 @@ CON
     I2C_DEF_FREQ    = 400_000
     I2C_MAX_FREQ    = 3_400_000
 
-'' Register Map
-
+'' Compensation values
     DIG_T1_LSB      = $88   'US SH  CALIB00
-    DIG_T1_MSB      = $89   'uS SH
+    DIG_T1_MSB      = $89   'US SH
     DIG_T2_LSB      = $8A   'S SH
     DIG_T2_MSB      = $8B   'S SH
     DIG_T3_LSB      = $8C   'S SH
@@ -30,16 +29,17 @@ CON
     DIG_P8_LSB      = $9C   'S SH
     DIG_P8_MSB      = $9D   'S SH
     DIG_P9_LSB      = $9E   'S SH
-    DIG_P9_MSB      = $9F   'S SH   CALIB25
+    DIG_P9_MSB      = $9F   'S SH   CALIB23
     
-    
-    ID              = $D0   ' SHOULD RETURN $58
+'' Register Map
+    REG_ID          = $D0   ' SHOULD RETURN $58
         ID_EXPECTED = $58
-    RESET           = $E0   ' WRITE $B6 TO RESET - ALL OTHER VALUES IGNORED. ALWAYS READS $00
+    REG_RESET       = $E0   ' WRITE $B6 TO RESET - ALL OTHER VALUES IGNORED. ALWAYS READS $00
         DO_RESET    = $B6
-    STATUS          = $F3
-    CTRL_MEAS       = $F4
-    CONFIG          = $F5
+    REG_STATUS      = $F3
+    REG_CTRL_MEAS   = $F4
+    REG_CONFIG      = $F5
+
     PRESS_MSB       = $F7
     PRESS_LSB       = $F8
     PRESS_XLSB      = $F9

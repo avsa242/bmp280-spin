@@ -27,6 +27,9 @@ CON
     MODE_FORCED2= bmp280#MODE_FORCED2
     MODE_NORMAL = bmp280#MODE_NORMAL
 
+'' Offset within compensation data where Pressure compensation values start
+    PRESS_OFFSET= 6
+    
 VAR
 
     byte    _comp_data[24]
@@ -37,6 +40,7 @@ OBJ
     bmp280  : "core.con.bmp280"
     i2c     : "jm_i2c_fast"
     time    : "time"
+    types   : "system.types"
 
 PUB null
 '' This is not a top-level object
@@ -58,7 +62,7 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ)
 PUB ID
 '' Queries ID register
 ''  Should always return $58
-    return readReg8 (bmp280#ID)
+    return readReg8 (bmp280#REG_ID)
 
 PUB MeasureMode(mode)
 
@@ -69,7 +73,7 @@ PUB MeasureMode(mode)
         OTHER:
             return
 
-    writeReg8 (bmp280#CTRL_MEAS, (%001_001 << 2) | mode)
+    writeReg8 (bmp280#REG_CTRL_MEAS, (%001_001 << 2) | mode)
 
 PUB Measure | alldata[2], i
 '' Queries BMP280 for one "frame" of measurement
@@ -80,6 +84,10 @@ PUB Measure | alldata[2], i
     repeat i from 0 to 2
         _last_temp.byte[i] := alldata.byte[5-i]
         _last_press.byte[i] := alldata.byte[2-i]
+'    _last_temp &= $1F_FF_FF
+'    _last_press &= $1F_FF_FF
+    _last_temp >>= 4
+    _last_press >>= 4
 
 PUB Pressure
 '' Takes measurement and returns pressure data
@@ -92,25 +100,57 @@ PUB Temperature
     return _last_temp
 
 PUB LastTemp
-'' Returns Temperature data from last read
+'' Returns Temperature data from last read using Measure
     return _last_temp
 
 PUB LastPress
-'' Returns Pressure data from last read
-
+'' Returns Pressure data from last read using Measure
     return _last_press
 
 PUB ReadTrim
 
     readRegX(bmp280#DIG_T1_LSB, @_comp_data, 24)
- 
+
+PUB dig_T(param)
+
+    case param
+        1:
+            return (_comp_data.byte[1] << 8) | _comp_data.byte[0]
+        2, 3:
+            return types.s16 (_comp_data.byte[((param - 1) * 2) + 1{param+1}], _comp_data.byte[((param - 1) * 2){param}])
+        OTHER:
+            return FALSE
+
+PUB dig_P(param)
+'   param-1 * 2 + offset
+'   1-1 * 2=0 + 6 = 6
+'   2-1 * 2=2 + 6 = 8
+'   3-1 * 2=4 + 6 = 10
+'   4-1 * 2=6 + 6 = 12
+'   5-1 * 2=8 + 6 = 14
+'   6-1 * 2=10 +6 = 16
+'   7-1 * 2=12 +6 = 18
+'   8-1 * 2=14 +6 = 20
+'   9-1 * 2=16 +6 = 22
+    case param
+        1:
+            return (_comp_data.byte[PRESS_OFFSET + 1] << 8) | _comp_data.byte[PRESS_OFFSET + 0]
+        2..9:
+            return types.s16 (_comp_data.byte[((param - 1) * 2) + PRESS_OFFSET+1{param+1}], _comp_data.byte[((param - 1) * 2) + PRESS_OFFSET{param}])
+        OTHER:
+            return FALSE
+
+PUB TrimAddr
+
+    return @_comp_data
+
 PUB SoftReset
 '' Sends soft-reset command to BMP280
-    writeReg8 (bmp280#RESET, bmp280#DO_RESET)
+    writeReg8 (bmp280#REG_RESET, bmp280#DO_RESET)
 
 PUB Status
 '' Queries status register
-    return readReg8 (bmp280#STATUS)
+    return readReg8 (bmp280#REG_STATUS)
 
 PRI readReg8(reg)
 
@@ -128,7 +168,7 @@ PRI readReg48(reg_base, ptr_data)
     readX (ptr_data, 6)
 
 PRI readRegX(reg_base, ptr_data, count)
-'' Intended for reading both Temperature and Pressure
+'' Read up to 'count' registers in one transaction
     writeOne (reg_base)
     readX (ptr_data, count)
 

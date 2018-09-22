@@ -26,8 +26,9 @@ VAR
 
     long _ser_cog
     long t_fine
+    long ptr_comp_data
 
-PUB Main
+PUB Main | i
 
     Setup
     ser.Clear
@@ -36,43 +37,81 @@ PUB Main
     ser.Hex (bmp.ID, 2)
     ser.Str (string(ser#NL, "STATUS: "))
     bmp.MeasureMode (bmp#MODE_NORMAL)
+    bmp.ReadTrim
+    ptr_comp_data := bmp.TrimAddr
+    ser.NewLine
+
+    repeat i from 0 to 23
+        ser.Position (i * 3, 3)
+        ser.Hex ($88+i, 2)
+        ser.Position (i * 3, 4)
+        ser.Hex (byte[ptr_comp_data][i], 2)
+        ser.Char (" ")
+    ser.NewLine
+
+    repeat i from 1 to 3
+        ser.Str (string("dig_T("))
+        ser.Dec (i)
+        ser.Str (string("): "))
+        ser.Hex (bmp.dig_T (i), 4)
+        ser.Char ("/")
+        ser.Dec (bmp.dig_T (i))
+        ser.NewLine
+    ser.NewLine
+
+    repeat i from 1 to 9
+        ser.Str (string("dig_P("))
+        ser.Dec (i)
+        ser.Str (string("): "))
+        ser.Hex (bmp.dig_P (i), 4)
+        ser.Char ("/")
+        ser.Dec (bmp.dig_P (i))
+        ser.NewLine
 
     repeat
-        ser.Position (8, 1)
-        ser.Hex (bmp.Status, 2)
-
         bmp.Measure
-
-        ser.Position (0, 2)
-        ser.Str (string("TEMP: "))
-        ser.Hex (bmp.LastTemp, 6)
-
-        ser.Position (0, 3)
-        ser.Str (string("PRESS: "))
-        ser.Hex (bmp.LastPress, 6)
-
+        ser.Position (0, 19)
+'        ser.Dec (cvt_t(519888))
+        ser.Hex (bmp.LastTemp, 5)
+        ser.Char ("(")
+        ser.Dec (bmp.LastTemp)
+        ser.Char ("/")
+        ser.Dec (t_fine)
+        ser.Char (")")
+        ser.Char ("/")
+        ser.Dec (cvt_t(bmp.LastTemp))
+'813000 - 2481
+        ser.Position (0, 20)
+        ser.Hex (bmp.LastPress, 5)
+        ser.Char ("(")
+        ser.Dec (bmp.LastPress)
+        ser.Char (")")
+        ser.Char ("/")
+        ser.Dec (cvt_p(bmp.LastPress))
+'        ser.Dec (cvt_p(415148))
         time.MSleep (100)
 
-PUB cvt_t: T | var1, var2, dig_T1, dig_T2, dig_T3
+
+PUB cvt_t(adc_T): T | var1, var2
 '' TODO: Read dig_* constants from BMP280 NVM
-    var1 := ((bmp.LastTemp/16384) - (dig_T1/1024)) * dig_T2
-    var2 := ((bmp.LastTemp/131072) - (dig_T1/8192)) * (bmp.LastTemp / 131072) - (dig_T1 / 8192) * dig_T3
+    var1 := (adc_T/16384 - bmp.dig_T(1)/1024) * bmp.dig_T(2)
+    var2 := ((adc_T/131072 - bmp.dig_T(1)/8192) * (adc_T / 131072 - bmp.dig_T(1) / 8192)) * bmp.dig_T(3)
     t_fine := var1 + var2
     T := (var1 + var2) / 5120
 
-PUB cvt_p: P | var1, var2, dig_P6, dig_P5, dig_P4, dig_P3, dig_P2, dig_P1, dig_P9, dig_P8, dig_P7
+PUB cvt_p(adc_P): P | var1, var2
 '' TODO: Read dig_* constants from BMP280 NVM
-    var1 := (t_fine / 2) - 64000
-    var2 := var1 * var1 * dig_P6 / 32768
-    var2 := var2 + var1 * dig_P5 * 2
-    var2 := (var2 / 4) + (dig_P4 * 65536)
-    var1 := (dig_P3 * var1 * var1 / 524288 + dig_P2 * var1) / 524288
-    var1 := (1 + var1 / 32768) * dig_P1
-    p := 1048576 - bmp.LastPress
-    p := (p - (var2 / 4096)) * 6250 / var1
-    var1 := dig_P9 * p * p / 2_147_483_648
-    var2 := p * dig_P8 / 32768
-    p := p + (var1 + var2 + dig_P7) / 16
+    var1 := (t_fine / 2) - 64000'
+    var2 := var1 * var1 * bmp.dig_P(6) / 32768'
+    var2 := var2 + var1 * bmp.dig_P(5) * 2'
+    var2 := (var2 / 4) + (bmp.dig_P(4) * 65536)'
+    var1 := (bmp.dig_P(3) * var1 * var1 / 524288 + bmp.dig_P(2) * var1) / 524288'
+    var1 := (1 + var1 / 32768) * bmp.dig_P(1)'
+    p := 1048576 - adc_P'
+    p := (p - (var2 / 4096)) * 6250 / var1'
+    var1 := bmp.dig_P(9) * p * p / 2_147_483_647'
+    var2 := p * bmp.dig_P(8) / 32768'
+    p := p + (var1 + var2 + bmp.dig_P(7)) / 16'
 
 PUB waitkey
 
