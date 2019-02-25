@@ -55,7 +55,7 @@ PUB Main | t1, p1
     cvt_t(t1)
     ser.NewLine
     ser.NewLine
-    cvt_p(p1)
+    fpcvt_p(p1)
     repeat
 
 PUB cvt_t(adc_T): T | var1, var2
@@ -66,13 +66,13 @@ PUB cvt_t(adc_T): T | var1, var2
     ser.NewLine
     
     var2 := ((adc_T/131072 - dig_T1/8192) * (adc_T / 131072 - dig_T1 / 8192)) * dig_T3
-    var2 /= 1000
+    var2 /= _scl
     ser.Str (string("var2= "))
     ser.Dec (var2)
     ser.NewLine
     
     t_fine := (var1 + var2)
-    t_fine /= 1000
+    t_fine /= _scl
     ser.Str (string("tfine= "))
     ser.Dec (t_fine)
     ser.NewLine
@@ -141,6 +141,71 @@ PUB cvt_p(adc_P): P | var1, var1_h, var2
     ser.Str (string("p= "))
     ser.Dec (p)
     ser.NewLine
+
+PUB fpcvt_p(adc_P): P | var1, var2
+
+    var1 := (t_fine >> 1) - 64000'
+    ser.Str (string("var1= "))
+    ser.Dec (var1)
+    ser.NewLine
+
+    var2 := (((var1 >> 2) * (var1 >> 2)) >> 11) * dig_P6'
+    ser.Str (string("var2= "))
+    ser.Dec (var2)
+    ser.NewLine
+
+    var2 := var2 + ((var1 * dig_P5) << 1)'
+    ser.Str (string("var2= "))
+    ser.Dec (var2)
+    ser.NewLine
+
+    var2 := (var2 >> 2) + (dig_P4 << 16)'
+    ser.Str (string("var2= "))
+    ser.Dec (var2)
+    ser.NewLine
+
+    var1 := (((dig_P3 * ( ((var1 >> 2) * (var1 >> 2)) >> 13)) >> 3) + (dig_P2 * var1) >> 1) >> 18'
+'    var1 :=  (((dig_P3 * (((var1 >> 2) * (var1 >> 2)) >> 13)) >> 3) + (((dig_P2) * var1)>>1))>>18
+
+    ser.Str (string("var1= "))
+    ser.Dec (var1)
+    ser.NewLine
+
+    var1 := ((32768 + var1) * dig_P1) >> 15'
+    ser.Str (string("var1= "))
+    ser.Dec (var1)
+    ser.NewLine
+
+    if var1 == 0
+        return 0
+    p := ((1048576 - adc_P)-(var2 >> 12)) * 3125'
+    ser.Str (string("p= "))
+    ser.Dec (p)
+    ser.NewLine
+
+    if p < $8000_0000'
+        p := (p << 1) / var1
+    else
+        p := (p / var1) * 2
+    ser.Str (string("p= "))
+    ser.Dec (p)
+    ser.NewLine
+
+    var1 := (dig_P9 * (((p >> 3) * (p >> 3)) >> 13)) >> 12'
+    ser.Str (string("var1= "))
+    ser.Dec (var1)
+    ser.NewLine
+
+    var2 := ((p >> 2) * dig_P8) >> 13'
+    ser.Str (string("var2= "))
+    ser.Dec (var2)
+    ser.NewLine
+
+    p := (p + (var1 + var2 + dig_P7) >> 4)
+    ser.Str (string("p= "))
+    ser.Dec (p)
+    ser.NewLine
+
 
 PUB Setup
 
