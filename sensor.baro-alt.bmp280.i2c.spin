@@ -76,9 +76,9 @@ PUB Stop
     i2c.terminate
 
 PUB ID
-'' Queries ID register
-''  Should always return $58
-    return readReg8 (core#REG_ID)
+' Chip identification number
+'   Returns: $58 (core#ID_EXPECTED)
+    readRegX (core#REG_ID, 1, @result)
 
 PUB MeasureMode(mode)
 
