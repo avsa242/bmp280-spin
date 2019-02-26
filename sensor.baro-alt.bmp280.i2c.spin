@@ -11,24 +11,21 @@
 }
 
 CON
-'' I2C Defaults
-    DEF_ADDR    = bmp280#SLAVE_ADDR
-    W           = 0
-    R           = 1
-    BMP280_W    = DEF_ADDR|W
-    BMP280_R    = DEF_ADDR|R
+    SLAVE_WR        = core#SLAVE_ADDR
+    SLAVE_RD        = core#SLAVE_ADDR|1
 
-    DEF_SCL     = 28
-    DEF_SDA     = 29
-    DEF_HZ      = bmp280#I2C_DEF_FREQ
+    DEF_SCL         = 28
+    DEF_SDA         = 29
+    DEF_HZ          = 400_000
+    I2C_MAX_FREQ    = core#I2C_MAX_FREQ
 
-    MODE_SLEEP  = bmp280#MODE_SLEEP
-    MODE_FORCED1= bmp280#MODE_FORCED1
-    MODE_FORCED2= bmp280#MODE_FORCED2
-    MODE_NORMAL = bmp280#MODE_NORMAL
+    MODE_SLEEP      = core#MODE_SLEEP
+    MODE_FORCED1    = core#MODE_FORCED1
+    MODE_FORCED2    = core#MODE_FORCED2
+    MODE_NORMAL     = core#MODE_NORMAL
 
 '' Offset within compensation data where Pressure compensation values start
-    PRESS_OFFSET= 6
+    PRESS_OFFSET    = 6
     
 VAR
 
@@ -37,7 +34,7 @@ VAR
 
 OBJ
 
-    bmp280  : "core.con.bmp280"
+    core    : "core.con.bmp280"
     i2c     : "jm_i2c_fast"
     time    : "time"
     types   : "system.types"
@@ -52,34 +49,53 @@ PUB Start: okay                                             'Default to "standar
 PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ)
 
     if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)'Validate pins and
-        if I2C_HZ =< bmp280#I2C_MAX_FREQ                    ' I2C bus freq
+        if I2C_HZ =< core#I2C_MAX_FREQ                    ' I2C bus freq
             return i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ) 'Pass cog ID returned from I2C object
         else
           return FALSE
     else
         return FALSE
 
+PUB Start: okay                                                 'Default to "standard" Propeller I2C pins and 400kHz
+
+    okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
+
+PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
+
+    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)
+        if I2C_HZ =< core#I2C_MAX_FREQ
+            if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
+                time.MSleep (1)
+                if i2c.present (SLAVE_WR)                       'Response from device?
+                    if ID == core#ID_EXPECTED
+                        return okay
+    return FALSE                                                'If we got here, something went wrong
+
+PUB Stop
+
+    i2c.terminate
+
 PUB ID
 '' Queries ID register
 ''  Should always return $58
-    return readReg8 (bmp280#REG_ID)
+    return readReg8 (core#REG_ID)
 
 PUB MeasureMode(mode)
 
     case mode
-        bmp280#MODE_SLEEP:
-        bmp280#MODE_FORCED1, bmp280#MODE_FORCED2:
-        bmp280#MODE_NORMAL:
+        core#MODE_SLEEP:
+        core#MODE_FORCED1, core#MODE_FORCED2:
+        core#MODE_NORMAL:
         OTHER:
             return
 
-    writeReg8 (bmp280#REG_CTRL_MEAS, (%001_001 << 2) | mode)
+    writeReg8 (core#REG_CTRL_MEAS, (%001_001 << 2) | mode)
 
 PUB Measure | alldata[2], i
 '' Queries BMP280 for one "frame" of measurement
 ''  (burst-reads both barometric pressure and temperature)
 '' Call this method, then LastTemp and LastPress to get data from the same measurement
-    readReg48 (bmp280#PRESS_MSB, @alldata)
+    readReg48 (core#PRESS_MSB, @alldata)
     
     repeat i from 0 to 2
         _last_temp.byte[i] := alldata.byte[5-i]
@@ -109,7 +125,7 @@ PUB LastPress
 
 PUB ReadTrim
 
-    readRegX(bmp280#DIG_T1_LSB, @_comp_data, 24)
+    readRegX(core#DIG_T1_LSB, @_comp_data, 24)
 
 PUB dig_T(param)
 
@@ -146,63 +162,70 @@ PUB TrimAddr
 
 PUB SoftReset
 '' Sends soft-reset command to BMP280
-    writeReg8 (bmp280#REG_RESET, bmp280#DO_RESET)
+    writeReg8 (core#REG_RESET, core#DO_RESET)
 
 PUB Status
 '' Queries status register
-    return readReg8 (bmp280#REG_STATUS)
+    return readReg8 (core#REG_STATUS)
 
-PRI readReg8(reg)
-
-    writeOne (reg)
-    return read8
-
-PRI readReg24(reg_base)
-'' Intended for reading one of Temperature or Pressure
-    writeOne (reg_base)
-    readX (@result, 3)
-
-PRI readReg48(reg_base, ptr_data)
-'' Intended for reading both Temperature and Pressure
-    writeOne (reg_base)
-    readX (ptr_data, 6)
-
-PRI readRegX(reg_base, ptr_data, count)
-'' Read up to 'count' registers in one transaction
-    writeOne (reg_base)
-    readX (ptr_data, count)
-
-PRI read8
+PUB readRegX(reg, nr_bytes, addr_buff) | cmd_packet[2], ackbit
+' Read nr_bytes from register 'reg' to address 'addr_buff'
+    cmd_packet.byte[0] := SLAVE_WR | _addr_bit
+    cmd_packet.byte[1] := reg.byte[MSB]                 'Register MSB
+    cmd_packet.byte[2] := reg.byte[LSB]                 'Register LSB
 
     i2c.start
-    i2c.write (BMP280_R)
-    return i2c.read (i2c#NAK)
+    ackbit := i2c.pwrite (@cmd_packet, 3)
+    if ackbit == i2c#NAK
+        i2c.stop
+        return
+
+' Handle quirky registers on a case-by-case basis
+    case reg
+        core#REG1:
+        OTHER:
+
+' No data was available, so do nothing
+    if ackbit == i2c#NAK
+        i2c.stop
+        return -1
+
+    i2c.pread (addr_buff, nr_bytes, TRUE)
     i2c.stop
 
-PRI readX(ptr_buff, num_bytes)
+PUB writeRegX(reg, nr_bytes, val) | cmd_packet[2]
+' Write nr_bytes to register 'reg' stored in val
+' If nr_bytes is
+'   0, It's a command that has no arguments - write the command only
+'   1, It's a command with a single byte argument - write the command, then the byte
+'   2, It's a command with two arguments - write the command, then the two bytes (encoded as a word)
+'   3, It's a command with two arguments and a CRC - write the command, then the two bytes (encoded as a word), lastly the CRC
+    cmd_packet.byte[0] := SLAVE_WR | _addr_bit
+
+    case nr_bytes
+        0:
+            cmd_packet.byte[1] := reg.byte[MSB]       'Simple command
+            cmd_packet.byte[2] := reg.byte[LSB]
+        1:
+            cmd_packet.byte[1] := reg.byte[MSB]       'Command w/1-byte argument
+            cmd_packet.byte[2] := reg.byte[LSB]
+            cmd_packet.byte[3] := val
+        2:
+            cmd_packet.byte[1] := reg.byte[MSB]       'Command w/2-byte argument
+            cmd_packet.byte[2] := reg.byte[LSB]
+            cmd_packet.byte[3] := val.byte[0]
+            cmd_packet.byte[4] := val.byte[1]
+        3:
+            cmd_packet.byte[1] := reg.byte[MSB]       'Command w/2-byte argument and CRC
+            cmd_packet.byte[2] := reg.byte[LSB]
+            cmd_packet.byte[3] := val.byte[0]
+            cmd_packet.byte[4] := val.byte[1]
+            cmd_packet.byte[5] := val.byte[2]
+        OTHER:
+            return
 
     i2c.start
-    i2c.write (BMP280_R)
-    i2c.pread (ptr_buff, num_bytes, i2c#NAK)
-    i2c.stop
-    
-PRI writeReg8(reg, data) | cmd_packet
-
-    cmd_packet.byte[0] := BMP280_W
-    cmd_packet.byte[1] := reg
-    cmd_packet.byte[2] := data
-    
-    i2c.start
-    i2c.pwrite (@cmd_packet, 3)
-    i2c.stop
-
-PRI writeOne(data) | cmd_packet
-
-    cmd_packet.byte[0] := BMP280_W
-    cmd_packet.byte[1] := data
-
-    i2c.start
-    i2c.pwrite (@cmd_packet, 2)
+    i2c.pwrite (@cmd_packet, 3 + nr_bytes)
     i2c.stop
 
 DAT
