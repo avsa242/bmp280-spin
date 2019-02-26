@@ -17,7 +17,7 @@ CON
 
 OBJ
 
-    cfg : "core.con.client.flip"
+    cfg : "core.con.boardcfg.flip"
     ser : "com.serial.terminal"
     time: "time"
     bmp : "sensor.baro-alt.bmp280.i2c"
