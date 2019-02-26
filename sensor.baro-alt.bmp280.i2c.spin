@@ -42,20 +42,6 @@ OBJ
 PUB null
 '' This is not a top-level object
 
-PUB Start: okay                                             'Default to "standard" Propeller I2C pins and 400kHz
-
-  okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
-
-PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ)
-
-    if lookdown(SCL_PIN: 0..31) and lookdown(SDA_PIN: 0..31)'Validate pins and
-        if I2C_HZ =< core#I2C_MAX_FREQ                    ' I2C bus freq
-            return i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ) 'Pass cog ID returned from I2C object
-        else
-          return FALSE
-    else
-        return FALSE
-
 PUB Start: okay                                                 'Default to "standard" Propeller I2C pins and 400kHz
 
     okay := Startx (DEF_SCL, DEF_SDA, DEF_HZ)
@@ -66,9 +52,8 @@ PUB Startx(SCL_PIN, SDA_PIN, I2C_HZ): okay
         if I2C_HZ =< core#I2C_MAX_FREQ
             if okay := i2c.setupx (SCL_PIN, SDA_PIN, I2C_HZ)    'I2C Object Started?
                 time.MSleep (1)
-                if i2c.present (SLAVE_WR)                       'Response from device?
-                    if ID == core#ID_EXPECTED
-                        return okay
+                if ID == core#ID_EXPECTED
+                    return okay
     return FALSE                                                'If we got here, something went wrong
 
 PUB Stop
