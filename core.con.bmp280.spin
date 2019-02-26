@@ -1,11 +1,22 @@
+{
+    --------------------------------------------
+    Filename: core.con.bmp280.spin
+    Description: BMP280 low-level driver constants
+    Author: Jesse Burt
+    Copyright (c) 2018
+    Created: Sep 16, 2018
+    Updated: Feb 25, 2019
+    See end of file for terms of use.
+    --------------------------------------------
+}
+
 CON
-'' BMP280
 
     SLAVE_ADDR      = $77 << 1
     I2C_DEF_FREQ    = 400_000
     I2C_MAX_FREQ    = 3_400_000
 
-'' Compensation values
+' Compensation values
     DIG_T1_LSB      = $88   'US SH  CALIB00
     DIG_T1_MSB      = $89   'US SH
     DIG_T2_LSB      = $8A   'S SH

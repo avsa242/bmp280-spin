@@ -1,11 +1,11 @@
 {
     --------------------------------------------
     Filename: BMP280-Demo.spin
-    Description: Demonstrates BMP280 Pressure/Temperature sensor (I2C)
+    Description: Demonstrates BMP280 Pressure/Temperature sensor driver (I2C)
     Author: Jesse Burt
-    Copyright (c) 2018
-    Created: September 16, 2018
-    Updated: September 16, 2018
+    Copyright (c) 2019
+    Created: Sep 16, 2018
+    Updated: Feb 25, 2019
     See end of file for terms of use.
     --------------------------------------------
 }

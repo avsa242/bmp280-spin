@@ -4,13 +4,14 @@
     Description: Driver object for the BOSCH BMP280 Barometric Pressure/Temperature sensor
     Author: Jesse Burt
     Copyright (c) 2018
-    Created: September 16, 2018
-    Updated: September 16, 2018
+    Created: Sep 16, 2018
+    Updated: Feb 25, 2019
     See end of file for terms of use.
     --------------------------------------------
 }
 
 CON
+
     SLAVE_WR        = core#SLAVE_ADDR
     SLAVE_RD        = core#SLAVE_ADDR|1
 
@@ -24,7 +25,7 @@ CON
     MODE_FORCED2    = core#MODE_FORCED2
     MODE_NORMAL     = core#MODE_NORMAL
 
-'' Offset within compensation data where Pressure compensation values start
+' Offset within compensation data where Pressure compensation values start
     PRESS_OFFSET    = 6
     
 VAR
@@ -40,7 +41,7 @@ OBJ
     types   : "system.types"
 
 PUB null
-'' This is not a top-level object
+' This is not a top-level object
 
 PUB Start: okay                                                 'Default to "standard" Propeller I2C pins and 400kHz
 
@@ -83,9 +84,9 @@ PUB MeasureMode(mode) | tmp
     writeRegX (core#CTRL_MEAS, 1, tmp)
 
 PUB Measure | alldata[2], i
-'' Queries BMP280 for one "frame" of measurement
-''  (burst-reads both barometric pressure and temperature)
-'' Call this method, then LastTemp and LastPress to get data from the same measurement
+' Queries BMP280 for one "frame" of measurement
+'  (burst-reads both barometric pressure and temperature)
+' Call this method, then LastTemp and LastPress to get data from the same measurement
     readReg48 (core#PRESS_MSB, @alldata)
     
     repeat i from 0 to 2
@@ -97,21 +98,21 @@ PUB Measure | alldata[2], i
     _last_press >>= 4
 
 PUB Pressure
-'' Takes measurement and returns pressure data
+' Takes measurement and returns pressure data
     Measure
     return _last_press
 
 PUB Temperature
-'' Takes measurement and returns temperature data
+' Takes measurement and returns temperature data
     Measure
     return _last_temp
 
 PUB LastTemp
-'' Returns Temperature data from last read using Measure
+' Returns Temperature data from last read using Measure
     return _last_temp
 
 PUB LastPress
-'' Returns Pressure data from last read using Measure
+' Returns Pressure data from last read using Measure
     return _last_press
 
 PUB ReadTrim
@@ -152,11 +153,11 @@ PUB TrimAddr
     return @_comp_data
 
 PUB SoftReset
-'' Sends soft-reset command to BMP280
+' Sends soft-reset command to BMP280
     writeReg8 (core#REG_RESET, core#DO_RESET)
 
 PUB Status
-'' Queries status register
+' Queries status register
     return readReg8 (core#REG_STATUS)
 
 PUB readRegX(reg, nr_bytes, addr_buff) | cmd_packet[2], ackbit

@@ -5,7 +5,7 @@ This is a P8X32A/Propeller driver object for the BOSCH BMP280 Barometric Pressur
 
 ## Salient Features
 
-* Supports I2C bus connected module up to 3.4MHz
+* Supports I2C bus connected module
 
 ## Requirements
 
@@ -13,7 +13,7 @@ This is a P8X32A/Propeller driver object for the BOSCH BMP280 Barometric Pressur
 
 ## Limitations
 
-* Early development - lacking in functionality, API not stabilized
+* Early development - lacking in functionality, API not stabilized, may outright fail to build
 * The driver supports up to 3.4MHz, although I don't believe the I2C driver is capable of clock speeds this high
 
 ## TODO
