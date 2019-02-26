@@ -32,13 +32,24 @@ CON
     DIG_P9_MSB      = $9F   'S SH   CALIB23
     
 '' Register Map
-    REG_ID          = $D0   ' SHOULD RETURN $58
-        ID_EXPECTED = $58
-    REG_RESET       = $E0   ' WRITE $B6 TO RESET - ALL OTHER VALUES IGNORED. ALWAYS READS $00
-        DO_RESET    = $B6
-    REG_STATUS      = $F3
-    REG_CTRL_MEAS   = $F4
-    REG_CONFIG      = $F5
+    ID                  = $D0   ' SHOULD RETURN $58
+        ID_EXPECTED     = $58
+    RESET               = $E0   ' WRITE $B6 TO RESET - ALL OTHER VALUES IGNORED. ALWAYS READS $00
+        DO_RESET        = $B6
+    STATUS              = $F3
+    CTRL_MEAS           = $F4
+    CTRL_MEAS_MASK      = $FF
+        FLD_MODE        = 0
+        FLD_OSRS_P      = 2
+        FLD_OSRS_T      = 5
+        BITS_MODE       = %11
+        BITS_OSRS_P     = %111
+        BITS_OSRS_T     = %111
+        MASK_MODE       = CTRL_MEAS_MASK ^ (BITS_MODE << FLD_MODE)
+        MASK_OSRS_P     = CTRL_MEAS_MASK ^ (BITS_OSRS_P << FLD_OSRS_P)
+        MASK_OSRS_T     = CTRL_MEAS_MASK ^ (BITS_OSRS_T << FLD_OSRS_T)
+
+    REG_CONFIG          = $F5
 
     PRESS_MSB       = $F7
     PRESS_LSB       = $F8

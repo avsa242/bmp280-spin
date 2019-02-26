@@ -29,8 +29,8 @@ CON
     
 VAR
 
-    byte    _comp_data[24]
-    long    _last_temp, _last_press
+    byte _comp_data[24]
+    long _last_temp, _last_press
 
 OBJ
 
@@ -63,18 +63,24 @@ PUB Stop
 PUB ID
 ' Chip identification number
 '   Returns: $58 (core#ID_EXPECTED)
-    readRegX (core#REG_ID, 1, @result)
+    readRegX (core#ID, 1, @result)
 
-PUB MeasureMode(mode)
-
+PUB MeasureMode(mode) | tmp
+' Sensor measurement mode
+'   Valid values:
+'       %00 (MODE_SLEEP): Performs no measurements (low-power mode)
+'       %01 (MODE_FORCED1): One-shot measurement, then return to MODE_SLEEP
+'       %10 (MODE_FORCED2): Same as MODE_FORCED1
+'       %11 (MODE_NORMAL): Continuous measurement
+    readRegX (core#CTRL_MEAS, 1, @tmp)
     case mode
-        core#MODE_SLEEP:
-        core#MODE_FORCED1, core#MODE_FORCED2:
-        core#MODE_NORMAL:
+        core#MODE_SLEEP, core#MODE_FORCED1, core#MODE_FORCED2, core#MODE_NORMAL:
         OTHER:
-            return
+            result := tmp & core#BITS_MODE
 
-    writeReg8 (core#REG_CTRL_MEAS, (%001_001 << 2) | mode)
+    tmp &= core#MASK_MODE
+    tmp := (tmp | mode) & core#CTRL_MEAS_MASK
+    writeRegX (core#CTRL_MEAS, 1, tmp)
 
 PUB Measure | alldata[2], i
 '' Queries BMP280 for one "frame" of measurement
